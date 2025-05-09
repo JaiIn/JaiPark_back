@@ -11,6 +11,7 @@ import org.example.jaipark_back.repository.PostRepository;
 import org.example.jaipark_back.repository.UserRepository;
 import org.example.jaipark_back.repository.LikeRepository;
 import org.example.jaipark_back.repository.BookmarkRepository;
+import org.example.jaipark_back.repository.FollowRepository;
 import org.example.jaipark_back.exception.PostException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -34,6 +35,9 @@ public class PostService {
 
     @Autowired
     private BookmarkRepository bookmarkRepository;
+
+    @Autowired
+    private FollowRepository followRepository;
 
     @Transactional
     public PostResponse createPost(@Valid PostRequest request, String username) {
@@ -164,6 +168,14 @@ public class PostService {
     public List<PostResponse> getBookmarkedPosts(String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
         return bookmarkRepository.findAllByUser(user).stream().map(bookmark -> convertToResponse(bookmark.getPost())).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public List<PostResponse> getFollowingsPosts(String username) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        var followings = followRepository.findByFollower(user);
+        var followingUsers = followings.stream().map(f -> f.getFollowing()).toList();
+        return postRepository.findAllByUserInOrderByCreatedAtDesc(followingUsers).stream().map(this::convertToResponse).toList();
     }
 
     private PostResponse convertToResponse(Post post) {

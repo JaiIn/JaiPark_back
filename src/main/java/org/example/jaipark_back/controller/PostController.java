@@ -87,4 +87,9 @@ public class PostController {
     public ResponseEntity<?> getBookmarkedPosts(Authentication authentication) {
         return ResponseEntity.ok(postService.getBookmarkedPosts(authentication.getName()));
     }
+
+    @GetMapping("/followings")
+    public ResponseEntity<?> getFollowingsPosts(Authentication authentication) {
+        return ResponseEntity.ok(postService.getFollowingsPosts(authentication.getName()));
+    }
 } 

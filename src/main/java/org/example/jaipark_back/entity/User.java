@@ -25,4 +25,10 @@ public class User {
     private String email;
 
     private String role = "ROLE_USER";
+
+    @Column(nullable = true)
+    private String name;
+
+    @Column(nullable = true)
+    private String profileImage;
 } 
