@@ -14,4 +14,5 @@ public class CommentResponse {
     private LocalDateTime updatedAt;
     private Long postId;
     private String postTitle;
+    private String nickname;
 } 

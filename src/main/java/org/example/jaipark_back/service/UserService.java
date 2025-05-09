@@ -81,6 +81,22 @@ public class UserService {
         response.setEmail(user.getEmail());
         response.setProfileImage(user.getProfileImage());
         response.setNickname(user.getNickname());
+        // 팔로워/팔로잉 수
+        response.setFollowerCount(followRepository.countByFollowing(user));
+        response.setFollowingCount(followRepository.countByFollower(user));
+        // 팔로워/팔로잉 목록
+        response.setFollowers(followRepository.findByFollowing(user).stream().map(f -> convertToSimpleUserResponse(f.getFollower())).collect(java.util.stream.Collectors.toList()));
+        response.setFollowings(followRepository.findByFollower(user).stream().map(f -> convertToSimpleUserResponse(f.getFollowing())).collect(java.util.stream.Collectors.toList()));
+        return response;
+    }
+
+    // 팔로워/팔로잉 목록용(재귀 방지)
+    private UserResponse convertToSimpleUserResponse(User user) {
+        UserResponse response = new UserResponse();
+        response.setId(user.getId());
+        response.setUsername(user.getUsername());
+        response.setNickname(user.getNickname());
+        response.setProfileImage(user.getProfileImage());
         return response;
     }
 

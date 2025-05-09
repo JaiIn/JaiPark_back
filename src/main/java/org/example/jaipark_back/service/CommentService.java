@@ -87,6 +87,7 @@ public class CommentService {
         response.setId(comment.getId());
         response.setContent(comment.getContent());
         response.setUsername(comment.getUser().getUsername());
+        response.setNickname(comment.getUser().getNickname());
         response.setCreatedAt(comment.getCreatedAt());
         response.setUpdatedAt(comment.getUpdatedAt());
         response.setPostId(comment.getPost().getId());

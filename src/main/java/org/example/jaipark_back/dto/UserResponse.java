@@ -11,4 +11,8 @@ public class UserResponse {
     private String email;
     private String nickname;
     private String profileImage;
+    private long followerCount;
+    private long followingCount;
+    private java.util.List<UserResponse> followers;
+    private java.util.List<UserResponse> followings;
 } 
