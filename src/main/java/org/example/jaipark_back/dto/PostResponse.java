@@ -12,6 +12,7 @@ public class PostResponse {
     private String title;
     private String content;
     private String username;
+    private String nickname;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CommentResponse> comments;

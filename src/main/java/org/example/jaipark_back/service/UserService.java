@@ -36,6 +36,9 @@ public class UserService {
         user.setUsername(signupRequest.getUsername());
         user.setEmail(signupRequest.getEmail());
         user.setPassword(passwordEncoder.encode(signupRequest.getPassword()));
+        user.setNickname(signupRequest.getNickname());
+        user.setGender(signupRequest.getGender());
+        user.setBirth(signupRequest.getBirth());
 
         return userRepository.save(user);
     }
@@ -43,7 +46,7 @@ public class UserService {
     @Transactional
     public UserResponse updateMe(UserUpdateRequest request, String username) {
         User user = userRepository.findByUsername(username).orElseThrow();
-        if (request.getName() != null) user.setName(request.getName());
+        if (request.getNickname() != null) user.setNickname(request.getNickname());
         if (request.getEmail() != null) user.setEmail(request.getEmail());
         if (request.getProfileImage() != null) user.setProfileImage(request.getProfileImage());
         userRepository.save(user);
@@ -76,8 +79,8 @@ public class UserService {
         response.setId(user.getId());
         response.setUsername(user.getUsername());
         response.setEmail(user.getEmail());
-        response.setName(user.getName());
         response.setProfileImage(user.getProfileImage());
+        response.setNickname(user.getNickname());
         return response;
     }
 

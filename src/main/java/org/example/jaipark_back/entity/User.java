@@ -31,4 +31,13 @@ public class User {
 
     @Column(nullable = true)
     private String profileImage;
+
+    @Column(nullable = false, unique = true)
+    private String nickname;
+
+    @Column(nullable = true)
+    private String gender; // "M", "F" 등
+
+    @Column(nullable = true)
+    private String birth; // yyyy-MM-dd
 } 

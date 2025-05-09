@@ -92,6 +92,13 @@ public class PostService {
             throw new PostException.UnauthorizedException();
         }
 
+        // 연관된 좋아요 삭제
+        likeRepository.deleteByPost(post);
+        
+        // 연관된 북마크 삭제
+        bookmarkRepository.deleteByPost(post);
+        
+        // 게시글 삭제 (댓글은 cascade로 자동 삭제)
         postRepository.delete(post);
     }
 
@@ -191,6 +198,7 @@ public class PostService {
         response.setTitle(post.getTitle());
         response.setContent(post.getContent());
         response.setUsername(post.getUser().getUsername());
+        response.setNickname(post.getUser().getNickname());
         response.setCreatedAt(post.getCreatedAt());
         response.setUpdatedAt(post.getUpdatedAt());
         response.setComments(post.getComments().stream()
