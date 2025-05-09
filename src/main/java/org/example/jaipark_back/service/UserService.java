@@ -15,6 +15,8 @@ import org.example.jaipark_back.entity.Follow;
 import org.example.jaipark_back.repository.FollowRepository;
 import java.util.stream.Collectors;
 import java.util.List;
+import org.example.jaipark_back.dto.NotificationEvent;
+import org.example.jaipark_back.service.NotificationProducer;
 
 @Service
 @RequiredArgsConstructor
@@ -22,6 +24,7 @@ public class UserService {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final FollowRepository followRepository;
+    private final NotificationProducer notificationProducer;
 
     public User createUser(SignupRequest signupRequest) {
         if (userRepository.existsByUsername(signupRequest.getUsername())) {
@@ -111,6 +114,13 @@ public class UserService {
         follow.setFollower(follower);
         follow.setFollowing(following);
         followRepository.save(follow);
+        // 팔로우 당한 사용자에게 알림
+        NotificationEvent event = new NotificationEvent();
+        event.setUsername(following.getUsername());
+        event.setType("FOLLOW");
+        event.setMessage(follower.getNickname() + "님이 회원님을 팔로우했습니다.");
+        event.setPostId(null);
+        notificationProducer.sendNotification(event);
     }
 
     // 언팔로우

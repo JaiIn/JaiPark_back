@@ -2,6 +2,7 @@ package org.example.jaipark_back.service;
 
 import org.example.jaipark_back.dto.CommentRequest;
 import org.example.jaipark_back.dto.CommentResponse;
+import org.example.jaipark_back.dto.NotificationEvent;
 import org.example.jaipark_back.entity.Comment;
 import org.example.jaipark_back.entity.Post;
 import org.example.jaipark_back.entity.User;
@@ -26,6 +27,9 @@ public class CommentService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private NotificationProducer notificationProducer;
+
     @Transactional
     public CommentResponse createComment(Long postId, CommentRequest request, String username) {
         Post post = postRepository.findById(postId)
@@ -39,6 +43,17 @@ public class CommentService {
         comment.setUser(user);
 
         Comment savedComment = commentRepository.save(comment);
+
+        // 게시글 작성자에게 알림 (본인이 자기 글에 댓글 달면 알림 X)
+        if (!post.getUser().getUsername().equals(username)) {
+            NotificationEvent event = new NotificationEvent();
+            event.setUsername(post.getUser().getUsername());
+            event.setType("COMMENT");
+            event.setMessage(user.getNickname() + "님이 회원님의 글에 댓글을 남겼습니다: " + comment.getContent());
+            event.setPostId(post.getId());
+            notificationProducer.sendNotification(event);
+        }
+
         return convertToResponse(savedComment);
     }
 
