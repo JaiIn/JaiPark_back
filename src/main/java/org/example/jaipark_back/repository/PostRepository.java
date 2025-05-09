@@ -23,4 +23,7 @@ public interface PostRepository extends JpaRepository<Post, Long> {
 
     @Query("SELECT DISTINCT p FROM Post p LEFT JOIN FETCH p.user LEFT JOIN FETCH p.comments c LEFT JOIN FETCH c.user ORDER BY p.createdAt DESC")
     Page<Post> findAllWithUserAndComments(Pageable pageable);
+
+    @Query("SELECT p FROM Post p WHERE p.title LIKE %:keyword% OR p.content LIKE %:keyword% ORDER BY p.createdAt DESC")
+    Page<Post> searchByTitleOrContent(@Param("keyword") String keyword, Pageable pageable);
 } 

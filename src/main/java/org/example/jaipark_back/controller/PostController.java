@@ -92,4 +92,13 @@ public class PostController {
     public ResponseEntity<?> getFollowingsPosts(Authentication authentication) {
         return ResponseEntity.ok(postService.getFollowingsPosts(authentication.getName()));
     }
+
+    @GetMapping("/search")
+    public ResponseEntity<?> searchPosts(
+        @RequestParam String keyword,
+        @RequestParam(defaultValue = "0") int page,
+        @RequestParam(defaultValue = "10") int size
+    ) {
+        return ResponseEntity.ok(postService.searchPosts(keyword, page, size));
+    }
 } 

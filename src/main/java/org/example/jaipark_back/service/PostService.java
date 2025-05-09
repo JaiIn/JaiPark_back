@@ -16,6 +16,7 @@ import org.example.jaipark_back.exception.PostException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.validation.Valid;
@@ -176,6 +177,12 @@ public class PostService {
         var followings = followRepository.findByFollower(user);
         var followingUsers = followings.stream().map(f -> f.getFollowing()).toList();
         return postRepository.findAllByUserInOrderByCreatedAtDesc(followingUsers).stream().map(this::convertToResponse).toList();
+    }
+
+    @Transactional(readOnly = true)
+    public Page<PostResponse> searchPosts(String keyword, int page, int size) {
+        Page<Post> posts = postRepository.searchByTitleOrContent(keyword, PageRequest.of(page, size));
+        return posts.map(this::convertToResponse);
     }
 
     private PostResponse convertToResponse(Post post) {
