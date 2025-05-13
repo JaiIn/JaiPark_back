@@ -10,6 +10,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.List;
+
 import java.util.Map;
 
 @RestController
@@ -91,6 +95,54 @@ public class PostController {
     @GetMapping("/followings")
     public ResponseEntity<?> getFollowingsPosts(Authentication authentication) {
         return ResponseEntity.ok(postService.getFollowingsPosts(authentication.getName()));
+    }
+    
+    /**
+     * 키셋 페이지네이션을 이용한 게시물 목록 조회 API
+     */
+    @GetMapping("/cursor")
+    public ResponseEntity<List<PostResponse>> getPostsWithCursor(
+            @RequestParam(required = false) Long lastPostId,
+            @RequestParam(defaultValue = "20") int limit) {
+        return ResponseEntity.ok(postService.getPostsWithCursor(lastPostId, limit));
+    }
+    
+    /**
+     * 시간 기반 키셋 페이지네이션 API
+     */
+    @GetMapping("/time-cursor")
+    public ResponseEntity<List<PostResponse>> getPostsWithTimeCursor(
+            @RequestParam(required = false) LocalDateTime createdAt,
+            @RequestParam(required = false) Long id,
+            @RequestParam(defaultValue = "20") int limit) {
+        
+        Map<String, Object> cursorParams = new HashMap<>();
+        if (createdAt != null && id != null) {
+            cursorParams.put("createdAt", createdAt);
+            cursorParams.put("id", id);
+        }
+        
+        return ResponseEntity.ok(postService.getPostsWithTimeCursor(cursorParams, limit));
+    }
+    
+    /**
+     * 팔로잉 게시물을 위한 키셋 페이지네이션 API
+     */
+    @GetMapping("/followings/cursor")
+    public ResponseEntity<?> getFollowingsPostsWithCursor(
+            Authentication authentication,
+            @RequestParam(required = false) LocalDateTime createdAt,
+            @RequestParam(required = false) Long id,
+            @RequestParam(defaultValue = "20") int limit) {
+        
+        Map<String, Object> cursorParams = new HashMap<>();
+        if (createdAt != null && id != null) {
+            cursorParams.put("createdAt", createdAt);
+            cursorParams.put("id", id);
+        }
+        
+        return ResponseEntity.ok(postService.getFollowingsPostsWithCursor(
+                authentication.getName(), cursorParams, limit));
     }
 
     @GetMapping("/search")

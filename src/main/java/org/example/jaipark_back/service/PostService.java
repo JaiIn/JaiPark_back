@@ -21,7 +21,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.validation.Valid;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 @Service
 public class PostService {
@@ -185,6 +189,94 @@ public class PostService {
         var followingUsers = followings.stream().map(f -> f.getFollowing()).toList();
         return postRepository.findAllByUserInOrderByCreatedAtDesc(followingUsers).stream().map(this::convertToResponse).toList();
     }
+    
+    /**
+     * 키셋 페이지네이션을 이용한 게시물 조회
+     * @param lastPostId 마지막으로 조회한 게시물 ID
+     * @param limit 페이지 크기
+     * @return 게시물 목록
+     */
+    @Transactional(readOnly = true)
+    public List<PostResponse> getPostsWithCursor(Long lastPostId, int limit) {
+        List<Post> posts;
+        if (lastPostId == null) {
+            posts = postRepository.findFirstPage(limit);
+        } else {
+            posts = postRepository.findPostsBeforeId(lastPostId, limit);
+        }
+        return posts.stream().map(this::convertToResponse).toList();
+    }
+    
+    /**
+     * 시간 기반 키셋 페이지네이션
+     * @param cursorParams 커서 파라미터 (시간, ID)
+     * @param limit 페이지 크기
+     * @return 게시물 목록
+     */
+    @Transactional(readOnly = true)
+    public List<PostResponse> getPostsWithTimeCursor(Map<String, Object> cursorParams, int limit) {
+        List<Post> posts;
+        if (cursorParams == null || cursorParams.isEmpty()) {
+            // 커서가 없으면 최근 게시물부터 조회
+            posts = postRepository.findFirstPage(limit);
+        } else {
+            LocalDateTime createdAt = (LocalDateTime) cursorParams.get("createdAt");
+            Long id = (Long) cursorParams.get("id");
+            posts = postRepository.findPostsBeforeTimeAndId(createdAt, id, limit);
+        }
+        return posts.stream().map(this::convertToResponse).toList();
+    }
+    
+    /**
+     * 팔로우한 사용자의 게시물을 키셋 페이지네이션으로 조회
+     * @param username 사용자명
+     * @param cursorParams 커서 파라미터
+     * @param limit 페이지 크기
+     * @return 리스트 데이터와 마지막 커서 정보
+     */
+    @Transactional(readOnly = true)
+    public Map<String, Object> getFollowingsPostsWithCursor(String username, Map<String, Object> cursorParams, int limit) {
+        User user = userRepository.findByUsername(username).orElseThrow();
+        var followings = followRepository.findByFollower(user);
+        var followingUsers = followings.stream().map(f -> f.getFollowing()).toList();
+        
+        if (followingUsers.isEmpty()) {
+            return Map.of(
+                "posts", Collections.emptyList(),
+                "nextCursor", null
+            );
+        }
+        
+        List<Post> posts;
+        if (cursorParams == null || cursorParams.isEmpty()) {
+            // 커서가 없으면 최근 게시물부터 조회 (겹치는 코드지만 예제를 위해 함수 추가)
+            posts = postRepository.findAllByUserInOrderByCreatedAtDesc(followingUsers)
+                     .stream()
+                     .limit(limit)
+                     .toList();
+        } else {
+            LocalDateTime createdAt = (LocalDateTime) cursorParams.get("createdAt");
+            Long id = (Long) cursorParams.get("id");
+            posts = postRepository.findPostsByUsersBeforeTimeAndId(followingUsers, createdAt, id, limit);
+        }
+        
+        List<PostResponse> postResponses = posts.stream().map(this::convertToResponse).toList();
+        
+        // 다음 커서 정보 생성
+        Map<String, Object> nextCursor = null;
+        if (!posts.isEmpty() && posts.size() == limit) {
+            Post lastPost = posts.get(posts.size() - 1);
+            nextCursor = Map.of(
+                "createdAt", lastPost.getCreatedAt(),
+                "id", lastPost.getId()
+            );
+        }
+        
+        return Map.of(
+            "posts", postResponses,
+            "nextCursor", nextCursor
+        );
+    }
 
     @Transactional(readOnly = true)
     public Page<PostResponse> searchPosts(String keyword, int page, int size) {
@@ -201,17 +293,25 @@ public class PostService {
         response.setNickname(post.getUser().getNickname());
         response.setCreatedAt(post.getCreatedAt());
         response.setUpdatedAt(post.getUpdatedAt());
-        response.setComments(post.getComments().stream()
-                .map(comment -> {
-                    CommentResponse commentResponse = new CommentResponse();
-                    commentResponse.setId(comment.getId());
-                    commentResponse.setContent(comment.getContent());
-                    commentResponse.setUsername(comment.getUser().getUsername());
-                    commentResponse.setCreatedAt(comment.getCreatedAt());
-                    commentResponse.setUpdatedAt(comment.getUpdatedAt());
-                    return commentResponse;
-                })
-                .collect(java.util.stream.Collectors.toList()));
+        
+        // 게시물 목록에서는 대부분 댓글이 아직 로드되지 않았을 것임 (Lazy Loading)
+        // 댓글이 존재하는지 확인하고 로드된 경우에만 처리
+        if (post.getComments() != null && !post.getComments().isEmpty()) {
+            response.setComments(post.getComments().stream()
+                    .map(comment -> {
+                        CommentResponse commentResponse = new CommentResponse();
+                        commentResponse.setId(comment.getId());
+                        commentResponse.setContent(comment.getContent());
+                        commentResponse.setUsername(comment.getUser().getUsername());
+                        commentResponse.setCreatedAt(comment.getCreatedAt());
+                        commentResponse.setUpdatedAt(comment.getUpdatedAt());
+                        return commentResponse;
+                    })
+                    .collect(java.util.stream.Collectors.toList()));
+        } else {
+            response.setComments(new ArrayList<>());
+        }
+        
         return response;
     }
 } 
