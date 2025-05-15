@@ -2,15 +2,21 @@ package org.example.jaipark_back.security;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
 import javax.crypto.SecretKey;
 import java.util.Date;
 
 @Component
+@RequiredArgsConstructor
 public class JwtTokenProvider {
+
+    private final CustomUserDetailsService customUserDetailsService;
 
     @Value("${jwt.secret}")
     private String jwtSecret;
@@ -70,5 +76,11 @@ public class JwtTokenProvider {
             // JWT claims string is empty
             return false;
         }
+    }
+
+    public Authentication getAuthentication(String token) {
+        String username = getUsernameFromJWT(token);
+        UserDetails userDetails = customUserDetailsService.loadUserByUsername(username);
+        return new UsernamePasswordAuthenticationToken(userDetails, "", userDetails.getAuthorities());
     }
 } 

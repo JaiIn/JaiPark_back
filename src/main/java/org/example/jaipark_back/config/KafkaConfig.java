@@ -13,6 +13,7 @@ import org.springframework.kafka.core.*;
 import org.springframework.kafka.support.serializer.JsonDeserializer;
 import org.springframework.kafka.support.serializer.JsonSerializer;
 import org.example.jaipark_back.dto.NotificationEvent;
+import org.example.jaipark_back.dto.ChatEvent;
 import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
@@ -40,6 +41,12 @@ public class KafkaConfig {
     private static final String BATCH_TOPIC = "notification-batch";
     private static final String RETRY_TOPIC = "notification-retry";
     private static final String DLQ_TOPIC = "notification-dlq"; // Dead Letter Queue
+    
+    // 채팅 관련 토픽
+    private static final String CHAT_MESSAGE_TOPIC = "chat-message";
+    private static final String CHAT_READ_TOPIC = "chat-read";
+    private static final String CHAT_TYPING_TOPIC = "chat-typing";
+    private static final String CHAT_STATUS_TOPIC = "chat-status";
 
     /**
      * 비동기 작업을 위한 스레드 풀 설정
@@ -120,6 +127,39 @@ public class KafkaConfig {
             .replicas(1)
             .build();
     }
+    
+    // 채팅 관련 토픽 생성
+    @Bean
+    public NewTopic chatMessageTopic() {
+        return TopicBuilder.name(CHAT_MESSAGE_TOPIC)
+            .partitions(6) // 채팅 메시지는 부하가 클 수 있으므로 더 많은 파티션
+            .replicas(1)
+            .build();
+    }
+    
+    @Bean
+    public NewTopic chatReadTopic() {
+        return TopicBuilder.name(CHAT_READ_TOPIC)
+            .partitions(3)
+            .replicas(1)
+            .build();
+    }
+    
+    @Bean
+    public NewTopic chatTypingTopic() {
+        return TopicBuilder.name(CHAT_TYPING_TOPIC)
+            .partitions(3)
+            .replicas(1)
+            .build();
+    }
+    
+    @Bean
+    public NewTopic chatStatusTopic() {
+        return TopicBuilder.name(CHAT_STATUS_TOPIC)
+            .partitions(3)
+            .replicas(1)
+            .build();
+    }
 
     /**
      * 단일 알림 이벤트 Producer 설정
@@ -146,6 +186,33 @@ public class KafkaConfig {
     @Bean
     public KafkaTemplate<String, NotificationEvent> kafkaTemplate() {
         return new KafkaTemplate<>(producerFactory());
+    }
+    
+    /**
+     * 채팅 이벤트 Producer 설정
+     */
+    @Bean
+    public ProducerFactory<String, ChatEvent> chatProducerFactory() {
+        Map<String, Object> configProps = new HashMap<>();
+        configProps.put(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, BOOTSTRAP_SERVERS);
+        configProps.put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer.class);
+        configProps.put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonSerializer.class);
+        
+        // 프로듀서 최적화 설정
+        configProps.put(ProducerConfig.RETRIES_CONFIG, 3);
+        configProps.put(ProducerConfig.RETRY_BACKOFF_MS_CONFIG, 1000);
+        configProps.put(ProducerConfig.BATCH_SIZE_CONFIG, 16384); // 16KB
+        configProps.put(ProducerConfig.LINGER_MS_CONFIG, 5); // 배치 전송 대기 시간
+        configProps.put(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy"); // 압축 설정
+        configProps.put(ProducerConfig.REQUEST_TIMEOUT_MS_CONFIG, 30000); // 요청 타임아웃
+        configProps.put(ProducerConfig.MAX_BLOCK_MS_CONFIG, 60000); // 최대 블록 시간
+        
+        return new DefaultKafkaProducerFactory<>(configProps);
+    }
+
+    @Bean
+    public KafkaTemplate<String, ChatEvent> chatKafkaTemplate() {
+        return new KafkaTemplate<>(chatProducerFactory());
     }
     
     /**
