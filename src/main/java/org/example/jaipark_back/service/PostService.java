@@ -3,10 +3,7 @@ package org.example.jaipark_back.service;
 import org.example.jaipark_back.dto.CommentResponse;
 import org.example.jaipark_back.dto.PostRequest;
 import org.example.jaipark_back.dto.PostResponse;
-import org.example.jaipark_back.entity.Post;
-import org.example.jaipark_back.entity.User;
-import org.example.jaipark_back.entity.Like;
-import org.example.jaipark_back.entity.Bookmark;
+import org.example.jaipark_back.entity.*;
 import org.example.jaipark_back.repository.PostRepository;
 import org.example.jaipark_back.repository.UserRepository;
 import org.example.jaipark_back.repository.LikeRepository;
@@ -184,10 +181,30 @@ public class PostService {
 
     @Transactional(readOnly = true)
     public List<PostResponse> getFollowingsPosts(String username) {
-        User user = userRepository.findByUsername(username).orElseThrow();
-        var followings = followRepository.findByFollower(user);
-        var followingUsers = followings.stream().map(f -> f.getFollowing()).toList();
-        return postRepository.findAllByUserInOrderByCreatedAtDesc(followingUsers).stream().map(this::convertToResponse).toList();
+        // 사용자 찾기
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("사용자를 찾을 수 없습니다: " + username));
+        
+        // 팔로우 관계 조회
+        List<Follow> followings = followRepository.findByFollower(user);
+        
+        if (followings.isEmpty()) {
+            // 팔로우한 사용자가 없는 경우
+            return Collections.emptyList();
+        }
+        
+        // 팔로우한 사용자 목록 추출
+        List<User> followingUsers = followings.stream()
+                .map(Follow::getFollowing)
+                .collect(java.util.stream.Collectors.toList());
+        
+        // 해당 사용자들의 게시글 조회
+        List<Post> posts = postRepository.findAllByUserInOrderByCreatedAtDesc(followingUsers);
+        
+        // 응답 변환
+        return posts.stream()
+                .map(this::convertToResponse)
+                .collect(java.util.stream.Collectors.toList());
     }
     
     /**
@@ -293,6 +310,10 @@ public class PostService {
         response.setNickname(post.getUser().getNickname());
         response.setCreatedAt(post.getCreatedAt());
         response.setUpdatedAt(post.getUpdatedAt());
+        
+        // 좋아요 및 북마크 수 추가
+        response.setLikeCount(likeRepository.countByPost(post));
+        response.setBookmarkCount(bookmarkRepository.countByPost(post));
         
         // 게시물 목록에서는 대부분 댓글이 아직 로드되지 않았을 것임 (Lazy Loading)
         // 댓글이 존재하는지 확인하고 로드된 경우에만 처리

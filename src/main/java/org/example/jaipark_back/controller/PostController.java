@@ -94,7 +94,8 @@ public class PostController {
 
     @GetMapping("/followings")
     public ResponseEntity<?> getFollowingsPosts(Authentication authentication) {
-        return ResponseEntity.ok(postService.getFollowingsPosts(authentication.getName()));
+        List<PostResponse> followingPosts = postService.getFollowingsPosts(authentication.getName());
+        return ResponseEntity.ok(followingPosts);
     }
     
     /**

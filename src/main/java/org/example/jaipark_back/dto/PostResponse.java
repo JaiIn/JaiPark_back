@@ -16,4 +16,6 @@ public class PostResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private List<CommentResponse> comments;
+    private Long likeCount;
+    private Long bookmarkCount;
 } 
